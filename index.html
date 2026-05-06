@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PNewTab</title>
+    <style>
+        /* Základní barvy a proměnné */
+        :root {
+            --bg-color: #2b3a36; 
+            --search-bg: #3c4f4a; 
+            --search-hover: #455a54; 
+            --text-color: #ffffff;
+            --border-color: rgba(255, 255, 255, 0.2);
+            --modal-bg: #32443f;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Segoe UI', Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+            box-sizing: border-box;
+            padding-top: 15vh;
+        }
+
+        /* Box s logem (PNewTab) jako odkaz */
+        .logo-box {
+            background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.0));
+            border: 2px solid var(--border-color);
+            border-radius: 20px;
+            padding: 20px 45px;
+            font-size: 36px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            margin-bottom: 55px;
+            display: inline-block;
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(5px);
+            color: var(--text-color);
+            text-decoration: none; /* Odstraní podtržení odkazu */
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .logo-box:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+        }
+
+        /* Kontejner pro vyhledávání */
+        .search-container {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            width: 100%;
+            max-width: 700px;
+            position: relative;
+        }
+
+        /* Tlačítko pro výběr vyhledávače */
+        .engine-btn {
+            width: auto;
+            min-width: 65px;
+            height: 52px;
+            background-color: var(--search-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            padding: 0 15px;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .engine-btn:hover {
+            background-color: var(--search-hover);
+        }
+
+        .chevron-icon {
+            width: 14px;
+            height: 14px;
+            fill: currentColor;
+            opacity: 0.7;
+            transition: transform 0.2s;
+        }
+        
+        .engine-btn.open .chevron-icon {
+            transform: rotate(180deg);
+        }
+
+        /* Menu pro výběr vyhledávače */
+        .engine-menu {
+            position: absolute;
+            top: 65px;
+            left: 0;
+            background-color: var(--modal-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            z-index: 20;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+            min-width: 160px;
+        }
+
+        .engine-menu.active {
+            display: flex;
+        }
+
+        .engine-menu div {
+            padding: 12px 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            transition: background 0.2s;
+        }
+
+        .engine-menu div:last-child {
+            border-bottom: none;
+        }
+
+        .engine-menu div:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Obal pro vyhledávací pole a našeptávač */
+        .input-wrapper {
+            position: relative;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Vyhledávací pole */
+        .search-input {
+            width: 100%;
+            height: 52px;
+            background-color: var(--search-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 26px;
+            color: var(--text-color);
+            font-size: 16px;
+            padding: 0 25px;
+            outline: none;
+            box-shadow: var(--shadow);
+            transition: background-color 0.2s, border-color 0.2s;
+            box-sizing: border-box;
+            position: relative;
+            z-index: 10;
+        }
+
+        .search-input:focus {
+            background-color: var(--search-hover);
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+
+        .search-input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .search-input.has-suggestions {
+            border-radius: 24px 24px 0 0;
+            border-bottom-color: transparent;
+            background-color: var(--search-hover);
+        }
+
+        /* Našeptávač (Suggestions Box) */
+        .suggestions-box {
+            position: absolute;
+            top: 50px; 
+            left: 0;
+            width: 100%;
+            background-color: #344843; 
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            border-top: none;
+            border-radius: 0 0 24px 24px;
+            box-sizing: border-box;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+            display: none;
+            flex-direction: column;
+            z-index: 9;
+            padding: 10px 0 15px 0;
+        }
+
+        .suggestion-item {
+            padding: 8px 25px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .suggestion-item:hover {
+            background-color: rgba(255, 255, 255, 0.08);
+        }
+
+        .suggestion-icon {
+            width: 20px;
+            height: 20px;
+            fill: rgba(255, 255, 255, 0.5);
+            flex-shrink: 0;
+            border-radius: 4px;
+        }
+
+        .suggestion-name {
+            font-weight: 500;
+            color: var(--text-color);
+        }
+
+        .suggestion-url {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 14px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Zástupci (Shortcuts) */
+        .shortcuts-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 25px;
+            margin-top: 60px;
+            max-width: 700px;
+            justify-content: center;
+        }
+
+        .shortcut {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            width: 90px;
+            position: relative;
+            padding: 10px;
+            border-radius: 12px;
+            transition: background 0.2s;
+        }
+
+        .shortcut:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        .shortcut-icon {
+            width: 54px;
+            height: 54px;
+            background-color: var(--search-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            box-shadow: var(--shadow);
+            transition: all 0.2s ease;
+            overflow: hidden;
+        }
+
+        .shortcut:hover .shortcut-icon {
+            background-color: var(--search-hover);
+            transform: translateY(-2px);
+        }
+
+        .shortcut-img {
+            width: 28px;
+            height: 28px;
+            object-fit: contain;
+            border-radius: 4px;
+        }
+
+        .shortcut-title {
+            font-size: 13px;
+            text-align: center;
+            word-wrap: break-word;
+            width: 100%;
+            opacity: 0.9;
+        }
+
+        .delete-btn {
+            position: absolute;
+            top: 5px;
+            right: 10px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 22px;
+            height: 22px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            display: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            z-index: 2;
+        }
+
+        .shortcut:hover .delete-btn {
+            display: block;
+        }
+
+        /* Okénko (Modal) */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(3px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 30;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--modal-bg);
+            padding: 30px;
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            width: 320px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .modal h3 {
+            margin: 0 0 10px 0;
+            text-align: center;
+            font-size: 20px;
+        }
+
+        .modal input {
+            padding: 12px 15px;
+            background: rgba(0,0,0,0.2);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            border-radius: 8px;
+            outline: none;
+            font-size: 14px;
+        }
+        
+        .modal input:focus {
+            border-color: rgba(255,255,255,0.6);
+        }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-top: 15px;
+        }
+
+        .modal-buttons button {
+            padding: 10px 18px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+
+        #cancelBtn {
+            background: transparent;
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+        }
+        #cancelBtn:hover { background: rgba(255,255,255,0.1); }
+
+        #saveBtn {
+            background: #83c6b2;
+            color: #1a2522;
+        }
+        #saveBtn:hover { background: #95d4c2; }
+        
+        .icon-svg { 
+            width: 22px; 
+            height: 22px; 
+            flex-shrink: 0; 
+            object-fit: contain; 
+            pointer-events: none; 
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Aktualizované logo, nyní funguje jako odkaz -->
+    <a href="https://josef-ino.github.io/newtab" class="logo-box">PNewTab</a>
+
+    <div class="search-container">
+        <!-- Výběr vyhledávače -->
+        <button class="engine-btn" id="engineBtn">
+            <div id="currentEngineIcon" style="display:flex;align-items:center;"></div>
+            <svg class="chevron-icon" viewBox="0 0 16 16">
+                <path fill-rule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/>
+            </svg>
+        </button>
+        
+        <!-- Dropdown menu s logy -->
+        <div class="engine-menu" id="engineMenu">
+            <div data-engine="google">
+                <svg class="icon-svg" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                </svg> Google
+            </div>
+            <div data-engine="duckduckgo">
+                <img src="https://duckduckgo.com/assets/icons/meta/DDG-icon_256x256.png" class="icon-svg" alt="DuckDuckGo"> DuckDuckGo
+            </div>
+            <div data-engine="github">
+                <svg class="icon-svg" viewBox="0 0 16 16" fill="#ffffff">
+                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+                </svg> GitHub
+            </div>
+        </div>
+
+        <!-- Wrapper pro vyhledávací pole a našeptávač -->
+        <div class="input-wrapper">
+            <input type="text" id="searchInput" class="search-input" placeholder="Zadejte hledaný výraz nebo URL." autocomplete="off" autofocus>
+            <div class="suggestions-box" id="suggestionsBox"></div>
+        </div>
+    </div>
+
+    <!-- Zástupci -->
+    <div class="shortcuts-container" id="shortcutsContainer">
+        <!-- Tlačítko pro přidání -->
+        <div class="shortcut" id="addShortcutBtn">
+            <div class="shortcut-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
+                    <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+                </svg>
+            </div>
+            <div class="shortcut-title">Přidat zástupce</div>
+        </div>
+    </div>
+
+    <!-- Modální okno -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal">
+            <h3>Nový zástupce</h3>
+            <input type="text" id="shortcutName" placeholder="Název (např. YouTube)">
+            <input type="text" id="shortcutUrl" placeholder="URL (např. youtube.com)">
+            <div class="modal-buttons">
+                <button id="cancelBtn">Zrušit</button>
+                <button id="saveBtn">Uložit</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let shortcuts = JSON.parse(localStorage.getItem('myShortcuts')) || [];
+
+        // --- ZÍSKÁNÍ DOMÉNY PRO LOGO ---
+        function getDomainFromUrl(url) {
+            try {
+                return new URL(url).hostname;
+            } catch (e) {
+                return url.replace(/^https?:\/\//, '').split('/')[0];
+            }
+        }
+
+        // --- VYHLEDÁVAČ A LOGA ---
+        const searchInput = document.getElementById('searchInput');
+        const engineBtn = document.getElementById('engineBtn');
+        const engineMenu = document.getElementById('engineMenu');
+        const currentEngineIcon = document.getElementById('currentEngineIcon');
+        const suggestionsBox = document.getElementById('suggestionsBox');
+        
+        const engines = {
+            google: { url: 'https://www.google.com/search?q=', svg: '<svg class="icon-svg" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>' },
+            duckduckgo: { url: 'https://duckduckgo.com/?q=', svg: '<img src="https://duckduckgo.com/assets/icons/meta/DDG-icon_256x256.png" class="icon-svg" alt="DuckDuckGo">' },
+            github: { url: 'https://github.com/search?q=', svg: '<svg class="icon-svg" viewBox="0 0 16 16" fill="#ffffff"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>' }
+        };
+        
+        let currentEngine = 'google';
+        currentEngineIcon.innerHTML = engines[currentEngine].svg;
+
+        // Otevření menu
+        engineBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            engineMenu.classList.toggle('active');
+            engineBtn.classList.toggle('open');
+        });
+
+        // Výběr v menu
+        engineMenu.addEventListener('click', (e) => {
+            const targetDiv = e.target.closest('div[data-engine]');
+            if (targetDiv) {
+                currentEngine = targetDiv.dataset.engine;
+                currentEngineIcon.innerHTML = engines[currentEngine].svg;
+                engineMenu.classList.remove('active');
+                engineBtn.classList.remove('open');
+                searchInput.focus();
+            }
+        });
+
+        // Skrytí
+        document.addEventListener('click', (e) => {
+            if (!engineBtn.contains(e.target) && !engineMenu.contains(e.target)) {
+                engineMenu.classList.remove('active');
+                engineBtn.classList.remove('open');
+            }
+            if (!searchInput.contains(e.target) && !suggestionsBox.contains(e.target)) {
+                closeSuggestions();
+            }
+        });
+
+        // --- NAŠEPTÁVAČ (SUGGESTIONS) ---
+        function closeSuggestions() {
+            suggestionsBox.style.display = 'none';
+            searchInput.classList.remove('has-suggestions');
+        }
+
+        searchInput.addEventListener('input', function() {
+            const val = this.value.trim().toLowerCase();
+            suggestionsBox.innerHTML = '';
+            
+            if (!val) {
+                closeSuggestions();
+                return;
+            }
+
+            const matchedShortcuts = shortcuts.filter(s => s.name.toLowerCase().includes(val));
+
+            if (matchedShortcuts.length > 0) {
+                matchedShortcuts.forEach(s => {
+                    const div = document.createElement('div');
+                    div.className = 'suggestion-item';
+                    
+                    const domain = getDomainFromUrl(s.url);
+                    const favUrl = `https://s2.googleusercontent.com/s2/favicons?domain=${domain}&sz=64`;
+
+                    div.innerHTML = `
+                        <img src="${favUrl}" class="suggestion-icon" alt="" onerror="this.style.display='none'">
+                        <span class="suggestion-name">${s.name}</span>
+                        <span class="suggestion-url">- ${s.url.replace(/^https?:\/\//, '')}</span>
+                    `;
+                    div.addEventListener('click', () => { window.location.href = s.url; });
+                    suggestionsBox.appendChild(div);
+                });
+                suggestionsBox.style.display = 'flex';
+                searchInput.classList.add('has-suggestions');
+            } else {
+                closeSuggestions();
+            }
+        });
+
+        function isUrl(string) {
+            if (string.includes(' ')) return false;
+            const urlPattern = /^(https?:\/\/)?([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(\/.*)?$/i;
+            return urlPattern.test(string);
+        }
+
+        searchInput.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter' && this.value.trim() !== '') {
+                const query = this.value.trim();
+                if (isUrl(query)) {
+                    window.location.href = query.includes('://') ? query : `https://${query}`;
+                } else {
+                    window.location.href = engines[currentEngine].url + encodeURIComponent(query);
+                }
+            }
+        });
+
+        // --- ZÁSTUPCI UI ---
+        const shortcutsContainer = document.getElementById('shortcutsContainer');
+        const addShortcutBtn = document.getElementById('addShortcutBtn');
+        const modalOverlay = document.getElementById('modalOverlay');
+        const cancelBtn = document.getElementById('cancelBtn');
+        const saveBtn = document.getElementById('saveBtn');
+        const nameInput = document.getElementById('shortcutName');
+        const urlInput = document.getElementById('shortcutUrl');
+
+        function renderShortcuts() {
+            document.querySelectorAll('.added-shortcut').forEach(el => el.remove());
+            
+            shortcuts.forEach((shortcut, index) => {
+                const div = document.createElement('div');
+                div.className = 'shortcut added-shortcut';
+                
+                const domain = getDomainFromUrl(shortcut.url);
+                const favUrl = `https://s2.googleusercontent.com/s2/favicons?domain=${domain}&sz=64`;
+
+                div.innerHTML = `
+                    <div class="shortcut-icon" onclick="window.location.href='${shortcut.url}'">
+                        <img src="${favUrl}" class="shortcut-img" alt="${shortcut.name}" onerror="this.outerHTML='<span style=\\'font-weight:bold; font-size:26px;\\'>${shortcut.name.charAt(0).toUpperCase()}</span>'">
+                    </div>
+                    <div class="shortcut-title">${shortcut.name}</div>
+                    <button class="delete-btn" onclick="deleteShortcut(${index})" title="Smazat">✕</button>
+                `;
+                shortcutsContainer.insertBefore(div, addShortcutBtn);
+            });
+        }
+
+        addShortcutBtn.addEventListener('click', () => {
+            modalOverlay.classList.add('active');
+            nameInput.value = ''; urlInput.value = '';
+            nameInput.focus();
+        });
+
+        cancelBtn.addEventListener('click', () => { modalOverlay.classList.remove('active'); });
+
+        saveBtn.addEventListener('click', () => {
+            const name = nameInput.value.trim();
+            let url = urlInput.value.trim();
+            if (name && url) {
+                if (!url.startsWith('http://') && !url.startsWith('https://')) url = 'https://' + url;
+                shortcuts.push({ name, url });
+                localStorage.setItem('myShortcuts', JSON.stringify(shortcuts));
+                renderShortcuts();
+                modalOverlay.classList.remove('active');
+            }
+        });
+
+        window.deleteShortcut = function(index) {
+            shortcuts.splice(index, 1);
+            localStorage.setItem('myShortcuts', JSON.stringify(shortcuts));
+            renderShortcuts();
+        };
+
+        renderShortcuts();
+    </script>
+</body>
+</html>
